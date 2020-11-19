@@ -1,0 +1,9 @@
+.login_container{
+	width: 40%;
+	height: 200px;
+	margin-top: auto;
+	margin-bottom: auto;
+}
+label[for="user_name"], label[for="password"]{
+	width: 40%;
+}

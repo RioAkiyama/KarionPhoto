@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8" />
+	<title>カリオン フォト</title>
+
+	<link rel="stylesheet" th:href="@{/webjars/bootstrap/4.1.1/css/bootstrap.min.css}" />
+	<link rel="stylesheet" th:href="@{/css/jquery-ui.css}" />
+	<link rel="stylesheet" th:href="@{/css/common.css}" />
+
+	<script type="text/javascript" th:src="@{/webjars/jquery/3.2.1/jquery.min.js}"></script>
+	<script type="text/javascript" th:src="@{/webjars/jquery-ui/1.12.1/jquery-ui.min.js}"></script>
+	<script type="text/javascript" th:src="@{/js/jquery.ui.datepicker-ja.min.js}"></script>
+	<script th:src="@{/js/common.js}"></script>
+</head>
+
+<script type="text/javascript" >
+var mediaIndex = 0;
+var mediaDatas = undefined;
+var stDate = undefined;
+var endDate = undefined;
+var pause = false;
+var mediaPlayTimeout = undefined;
+
+$(function () {
+	var device = isDevice();
+	$("#startDate").datepicker({numberOfMonths: (device)? 1:2});
+	$("#endDate").datepicker({numberOfMonths: (device)? 1:2});
+	getPhotoUrls();
+	
+	$('#updateDateRandomlyBtn').click(function () {
+		updateDateDuration(null, null);
+	});
+	
+	$('#updateDateBtn').click(function () {
+		updateDateDuration($("#startDate").val(), $("#endDate").val());
+	});
+
+	$('#backBtn').click(function () {
+		mediaIndex--;
+		if(mediaIndex < 0) mediaIndex = mediaDatas.length-1;
+		showImage();
+	});
+
+	$('#nextBtn').click(function () {
+		mediaIndex++;
+		if(mediaDatas.length <= mediaIndex) mediaIndex = 0;
+		showImage();
+	});
+
+	$('#playPauseBtn').click(function () {
+		if(pause){
+			$('#playPauseBtn').text('停止');
+			pause = false;
+			clearTimeout(mediaPlayTimeout);
+			playMedia();
+		}else{
+			$('#playPauseBtn').text('再生');
+			pause = true;
+		}
+	});
+});
+
+function updateDateDuration(startdate, enddate){
+    post(
+            '/api/updateDate/',
+            {
+            	startdate: startdate,
+            	enddate: enddate
+            },
+            function (response){
+                // success
+                if(response && response.result == 'OK'){
+                	alert("更新しました。");
+                	window.location.reload();
+                }else{
+                    alert("更新失敗");
+                }
+            },
+            function (){
+                // fail
+                alert('通信エラー');
+            }
+        );
+}
+
+function dateToStr(date){
+	return date.getFullYear() + '/' + (date.getMonth()+1) + '/' + date.getDate();
+}
+
+function playMedia(){
+	if(pause) return;
+	if(mediaDatas.length == 0) return;
+	if(mediaDatas.length <= mediaIndex) mediaIndex = 0;
+	
+	showImage();
+
+	mediaIndex++;
+
+	var span = Number($('#playSpan').val()) * 1000;
+	if(span < 1000) span = 1000;
+	mediaPlayTimeout = setTimeout(playMedia, span);
+}
+
+function showImage(){
+	$('#photo').prop('src', mediaDatas[mediaIndex].src);
+	$('#mediaDate').text(dateToStr(new Date(Number(mediaDatas[mediaIndex].date))));
+	$('#mediaCnt').text("("+(mediaIndex+1)+"/"+mediaDatas.length+")");
+}
+
+function getPhotoUrls(){
+    post(
+        '/api/getPhotoUrl/',
+        {},
+        function (response){
+            // success
+            if(response && response.result == 'OK'){
+            	if(response.authurl){
+            		window.open(response.authurl);
+            		alert("認証してください。");
+            		return;
+            	}
+            	
+            	mediaDatas = response.photos;
+            	stDate = response.StartDate;
+            	endDate = response.EndDate;
+            	
+            	$('#startDate').val(dateToStr(new Date(stDate)));
+            	$('#endDate').val(dateToStr(new Date(endDate)));
+            	
+            	if(mediaDatas.length == 0) alert("期間内の画像はありませんでした。");
+            	playMedia();
+            }else{
+                alert("画像取得失敗");
+            }
+        },
+        function (){
+            // fail
+            alert('通信エラー');
+        }
+    );
+}
+
+</script>
+
+<body>
+
+<div class="body_container text-center">
+
+	<div class="flexbox centerContents">
+		<h3>期間：</h3>
+		<input class="form-control" type="text" id="startDate" />
+		<h3> ～ </h3>
+		<input class="form-control" type="text" id="endDate" />
+		<button class="btn btn-default" id="updateDateBtn" type="button" >設定</button>
+		<button class="btn btn-default" id="updateDateRandomlyBtn" type="button" >ランダム設定</button>
+
+		<h3>再生間隔：</h3>
+		<input class="form-control" type="number" id="playSpan" value="5" />
+	</div>
+	
+	<div class="flexbox centerContents mt-5">
+		<button class="btn btn-default" id="backBtn" type="button" >◀</button>
+		<button class="btn btn-default" id="playPauseBtn" type="button" >停止</button>
+		<button class="btn btn-default" id="nextBtn" type="button" >▶</button>
+	</div>
+
+	<div class="text-center" id="mediaContainer">
+		<div class="flexbox centerContents">
+			<h4 id="mediaCnt"></h4>
+			<h1 id="mediaDate"></h1>
+		</div>
+		<img id="photo" src=''>
+	</div>
+
+</div>
+</body>
+</html>

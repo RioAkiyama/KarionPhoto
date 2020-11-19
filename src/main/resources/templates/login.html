@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8" />
+<title>KarionPhoto</title>
+</head>
+<link rel="stylesheet" th:href="@{/webjars/bootstrap/4.1.1/css/bootstrap.min.css}" />
+<script th:src="@{/webjars/jquery/3.3.1/jquery.min.js}"></script>
+<script th:src="@{/js/common.js}"></script>
+<link type="text/css" th:href="@{./css/common.css}" rel="stylesheet" />
+<link type="text/css" th:href="@{./css/login.css}" rel="stylesheet" />
+<script type="text/javascript" >
+$(function () {
+	$('#loginBtn').click(function () {
+		var password = $('#password').val();
+	    post(
+            '/api/login/',
+            {
+            	password: password
+            },
+            function (response){
+                // success
+                if(response && response.result == 'OK'){
+                    window.location = '/photos';
+                }else{
+                    alert("NG");
+                }
+            },
+            function (){
+                // fail
+                alert('通信エラー');
+            }
+        );
+	});
+});
+</script>
+
+<body>
+<div class="body_container login_container">
+	<div class="text-center">
+		<div class="flexbox pb-5">
+			<label for="password" >パスワード</label>
+			<input type="password" name="password" id="password" class="form-control" th:value="${password}"/>
+		</div>
+
+		<div class="centerContents">
+			<button class="btn btn-default" id="loginBtn" type="button" >ログイン</button>
+		</div>
+	</div>
+</div>
+</body>
+</html>
